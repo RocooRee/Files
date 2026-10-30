@@ -87,6 +87,7 @@ namespace Files.App
 		protected override void OnLaunched(LaunchActivatedEventArgs e)
 		{
 			UiDispatcher = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+			try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " OnLaunched" + Environment.NewLine); } catch { } // BC_ONLAUNCHED
 
 			// Constructed on the UI thread: the ctor subscribes the UI-thread-only Clipboard.ContentChanged
 			AppModel = new AppModel();
@@ -109,7 +110,7 @@ namespace Files.App
 
 						// Configure Ioc here so Ioc.Default-dependent constructions warm off-thread too
 						Ioc.Default.ConfigureServices(provider);
-						_ = provider.GetRequiredService<IFileTagsSettingsService>();
+						// Deferred: requires out-of-proc Files.App.Server (was causing DirectoryNotFoundException before server payload was present)`r`n`t`t`t`t`t`t// _ = provider.GetRequiredService<IFileTagsSettingsService>();
 
 						// Load the appearance settings needed for the first frame off the UI thread.
 						if (isStartupTask && provider.GetRequiredService<IGeneralSettingsService>().CloseToBackground)
@@ -120,8 +121,9 @@ namespace Files.App
 
 						return provider;
 					}
-					catch (Exception)
+					catch (Exception ex)
 					{
+						try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " servicesTask EX: " + ex.GetType().FullName + " :: " + ex.Message + Environment.NewLine + ex.StackTrace + Environment.NewLine); } catch { }
 						// A UI-thread-only service ctor failed off-thread; rebuilt on the UI thread below
 						return null;
 					}
@@ -133,23 +135,33 @@ namespace Files.App
 				if (!isStartupTask)
 				{
 					// Construct the window while appearance settings are loaded.
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " before MainWindow.Instance // BC_MW" + Environment.NewLine); } catch { }
 					_ = MainWindow.Instance;
 				}
 
 				// Configure the DI (dependency injection) container
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " before await servicesTask" + Environment.NewLine); } catch { }
 				var serviceProvider = await servicesTask;
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " after await servicesTask" + Environment.NewLine); } catch { }
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " serviceProvider null? " + (serviceProvider is null) + Environment.NewLine); } catch { }
 				if (serviceProvider is null)
 				{
+					try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " rebuilding DI on UI thread" + Environment.NewLine); } catch { }
 					serviceProvider = AppLifecycleHelper.ConfigureHost(appModel);
-					Ioc.Default.ConfigureServices(serviceProvider);
+					try { Ioc.Default.ConfigureServices(serviceProvider); }
+					catch (InvalidOperationException) { /* Ioc already configured by failed warmup */ }
 				}
 
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " before IUserSettingsService" + Environment.NewLine); } catch { }
 				var userSettingsService = Ioc.Default.GetRequiredService<IUserSettingsService>();
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " after IUserSettingsService" + Environment.NewLine); } catch { }
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " before serverInitialization assign" + Environment.NewLine); } catch { }
 				var serverInitialization = SafetyExtensions.IgnoreExceptions(async () =>
 				{
 					await serverSession;
 					await Server.AppService.InitializeAsync();
 				}, Logger);
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " before CloseToBackground check" + Environment.NewLine); } catch { }
 				if (isStartupTask && userSettingsService.GeneralSettingsService.CloseToBackground)
 				{
 					await serverInitialization;
@@ -162,16 +174,21 @@ namespace Files.App
 					Program.RegisterCurrentInstance();
 
 				// TODO: Replace with DI
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " before QuickAccessManager" + Environment.NewLine); } catch { }
 				QuickAccessManager = Ioc.Default.GetRequiredService<QuickAccessManager>();
 				HistoryWrapper = Ioc.Default.GetRequiredService<StorageHistoryWrapper>();
 				FileTagsManager = Ioc.Default.GetRequiredService<FileTagsManager>();
 				LibraryManager = Ioc.Default.GetRequiredService<LibraryManager>();
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " before Logger" + Environment.NewLine); } catch { }
 				Logger = Ioc.Default.GetRequiredService<ILogger<App>>();
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " after Logger" + Environment.NewLine); } catch { }
 				AppModel = Ioc.Default.GetRequiredService<AppModel>();
 
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " before window event hooks" + Environment.NewLine); } catch { }
 				MainWindow.Instance.Closed += Window_Closed;
 				MainWindow.Instance.Activated += Window_Activated;
 
+				try { System.IO.File.AppendAllText(System.IO.Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "activate_breadcrumb.txt"), DateTime.Now.ToString("o") + " App before splash/main showSplash=" + showSplashScreen + Environment.NewLine); } catch { } // BC_SHOWSPLASH
 				if (showSplashScreen)
 				{
 					SplashScreenLoadingTCS = new TaskCompletionSource();
@@ -182,6 +199,7 @@ namespace Files.App
 					MainWindow.Instance.ShowMainPage();
 				}
 
+				try { System.IO.File.AppendAllText(System.IO.Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "activate_breadcrumb.txt"), DateTime.Now.ToString("o") + " App before ActivateWithBackdropAsync" + Environment.NewLine); } catch { } // BC_ACTIVATE
 				if (!await MainWindow.Instance.ActivateWithBackdropAsync())
 					return;
 
@@ -274,7 +292,9 @@ namespace Files.App
 				FilePropertiesHelpers.DestroyCachedWindows();
 				MainWindow.Instance.CloseOtherWindows();
 
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " before IUserSettingsService" + Environment.NewLine); } catch { }
 				var settings = Ioc.Default.GetRequiredService<IUserSettingsService>();
+				try { System.IO.File.AppendAllText(@"C:\Users\User\AppData\Local\Temp\files_bc.txt", DateTime.Now.ToString("o") + " after IUserSettingsService" + Environment.NewLine); } catch { }
 				var commands = Ioc.Default.GetRequiredService<ICommandManager>();
 				if (settings.GeneralSettingsService.ContinueLastSessionOnStartUp || settings.AppSettingsService.RestoreTabsOnStartup)
 					AppLifecycleHelper.SaveSessionTabs();

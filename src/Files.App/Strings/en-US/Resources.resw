@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+锘??xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -4616,8 +4616,12 @@
     <comment>Setting that controls if the horizontal bookmarks bar is shown below the address bar</comment>
   </data>
   <data name="BookmarksBarEmptyHint" xml:space="preserve">
-    <value>Pin folders to the sidebar to see them here</value>
+    <value>Drag folders here to pin them</value>
     <comment>Hint shown in the bookmarks bar when no folders are pinned</comment>
+  </data>
+  <data name="BookmarksBarDropHint" xml:space="preserve">
+    <value>Drag folders here to pin them to the bookmarks bar and sidebar</value>
+    <comment>Tooltip on the bookmarks bar explaining drag-and-drop pin</comment>
   </data>
   <data name="ItemCountFormat" xml:space="preserve">
     <value>Item count format</value>

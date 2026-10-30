@@ -123,9 +123,9 @@ namespace Files.App.ViewModels
 			context.PageType is not ContentPageTypes.ReleaseNotes &&
 			context.PageType is not ContentPageTypes.Settings;
 
+		// Clover-style: keep bookmarks visible on Home; only hide on Settings/ReleaseNotes.
 		public bool ShowBookmarksBar =>
 			AppearanceSettingsService.ShowBookmarksBar &&
-			context.PageType is not ContentPageTypes.Home &&
 			context.PageType is not ContentPageTypes.ReleaseNotes &&
 			context.PageType is not ContentPageTypes.Settings;
 

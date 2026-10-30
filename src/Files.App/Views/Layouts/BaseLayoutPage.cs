@@ -14,6 +14,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.ApplicationModel.DataTransfer.DragDrop;
@@ -22,6 +23,7 @@ using Windows.Foundation.Collections;
 using Windows.Storage;
 using Windows.System;
 using Windows.Win32;
+using Windows.Win32.UI.Shell;
 using WinRT;
 using static Files.App.Helpers.PathNormalization;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
@@ -1044,12 +1046,10 @@ namespace Files.App.Views.Layouts
 				{
 					if (shellItemList?[0].FileSystemPath is not null && !instanceViewModel.IsPageTypeSearchResults)
 					{
+						// Prefer full Shell IDataObject (ShelfPane pattern) so WinRT targets see FileDrop/StorageItems.
+						// SetData(Shell IDList) alone is not enough for BookmarksBar / HasDraggedStorageItems.
 						var dataObject = ShellDataObject.Create(shellItemList);
-						if (ShellDataObject.GetShellIdListArray(dataObject) is byte[] data)
-						{
-							var stream = new MemoryStream(data).AsRandomAccessStream();
-							e.Data.SetData(ShellDataObject.ShellIdListArrayFormat, stream);
-						}
+						e.Data.As<Windows.Win32.UI.Shell.IDataObjectProvider>().SetDataObject(dataObject).ThrowOnFailure();
 					}
 					else
 					{

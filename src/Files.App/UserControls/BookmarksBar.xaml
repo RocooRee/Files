@@ -1,4 +1,4 @@
-<!--  Copyright (c) Files Community. Licensed under the MIT License.  -->
+锘?!--  Copyright (c) Files Community. Licensed under the MIT License.  -->
 <UserControl
 	x:Class="Files.App.UserControls.BookmarksBar"
 	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -10,7 +10,7 @@
 	mc:Ignorable="d">
 
 	<UserControl.Resources>
-		<!--  Context menu  -->
+		<!--  Context menu for a bookmark chip  -->
 		<MenuFlyout x:Key="BookmarkFlyout">
 			<MenuFlyoutItem
 				Click="OpenInNewTab_Click"
@@ -35,17 +35,44 @@
 				</MenuFlyoutItem.Icon>
 			</MenuFlyoutItem>
 		</MenuFlyout>
+
+		<!--  Context menu for empty bar area  -->
+		<MenuFlyout x:Key="EmptyBarFlyout">
+			<MenuFlyoutItem
+				x:Name="PinCurrentFolderItem"
+				Click="PinCurrentFolder_Click"
+				Text="{helpers:ResourceString Name=PinFolderToSidebar}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE718;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+		</MenuFlyout>
 	</UserControl.Resources>
 
+	<!--
+		AllowDrop must be set on hit-tested children (ScrollViewer / chips), not only the root.
+		WinUI rejects drops over children that do not opt in, even when a parent has AllowDrop.
+	-->
 	<Grid
 		x:Name="RootGrid"
 		MinHeight="28"
 		Padding="8,2,8,2"
+		AllowDrop="True"
+		AutomationProperties.Name="{helpers:ResourceString Name=ShowBookmarksBar}"
+		Background="Transparent"
 		BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
-		BorderThickness="0,0,0,1">
+		BorderThickness="0,0,0,1"
+		DragOver="BookmarksBar_DragOver"
+		Drop="BookmarksBar_Drop"
+		RightTapped="RootGrid_RightTapped"
+		ToolTipService.ToolTip="{helpers:ResourceString Name=BookmarksBarDropHint}">
 
 		<!--  Bookmarks  -->
 		<ScrollViewer
+			AllowDrop="True"
+			Background="Transparent"
+			DragOver="BookmarksBar_DragOver"
+			Drop="BookmarksBar_Drop"
 			HorizontalScrollBarVisibility="Hidden"
 			HorizontalScrollMode="Auto"
 			VerticalScrollBarVisibility="Disabled"
@@ -60,11 +87,14 @@
 						<Button
 							Padding="8,4,8,4"
 							VerticalAlignment="Center"
+							AllowDrop="True"
 							AutomationProperties.Name="{x:Bind Text}"
 							Background="Transparent"
 							BorderThickness="0"
 							Click="Bookmark_Click"
 							CornerRadius="{StaticResource ControlCornerRadius}"
+							DragOver="BookmarksBar_DragOver"
+							Drop="BookmarksBar_Drop"
 							PointerPressed="Bookmark_PointerPressed"
 							RightTapped="Bookmark_RightTapped"
 							ToolTipService.ToolTip="{x:Bind ToolTip}">
@@ -98,6 +128,7 @@
 			VerticalAlignment="Center"
 			FontSize="12"
 			Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+			IsHitTestVisible="False"
 			Text="{helpers:ResourceString Name=BookmarksBarEmptyHint}"
 			Visibility="Collapsed" />
 	</Grid>
