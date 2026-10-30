@@ -1,0 +1,180 @@
+锘?!--  Copyright (c) Files Community. Licensed under the MIT License.  -->
+<UserControl
+	x:Class="Files.App.UserControls.BookmarksBar"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:dataitems="using:Files.App.Data.Items"
+	xmlns:helpers="using:Files.App.Helpers"
+	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	mc:Ignorable="d">
+
+	<UserControl.Resources>
+		<!--  Context menu for a bookmark chip (Chrome-like)  -->
+		<MenuFlyout x:Key="BookmarkFlyout">
+			<MenuFlyoutItem
+				Click="OpenInCurrentTab_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarOpenInCurrentTab}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8A5;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutItem
+				Click="OpenInNewTab_Click"
+				Text="{helpers:ResourceString Name=OpenInNewTab}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8A7;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutItem
+				Click="OpenInNewWindow_Click"
+				Text="{helpers:ResourceString Name=OpenInNewWindow}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8A7;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutSeparator />
+			<MenuFlyoutItem
+				x:Name="BookmarkFlyoutAddBookmarkItem"
+				Click="PinCurrentFolder_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarAddBookmark}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE718;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutItem
+				Click="AddFolder_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarAddFolder}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8B7;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutItem
+				Click="ManageBookmarks_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarManageBookmarks}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8FD;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutSeparator />
+			<MenuFlyoutItem
+				Click="Unpin_Click"
+				Text="{helpers:ResourceString Name=UnpinFolderFromSidebar}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE77A;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+		</MenuFlyout>
+
+		<!--  Context menu for empty bar area  -->
+		<MenuFlyout x:Key="EmptyBarFlyout">
+			<MenuFlyoutItem
+				x:Name="PinCurrentFolderItem"
+				Click="PinCurrentFolder_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarAddBookmark}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE718;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutItem
+				Click="AddFolder_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarAddFolder}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8B7;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutItem
+				Click="ManageBookmarks_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarManageBookmarks}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8FD;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+		</MenuFlyout>
+	</UserControl.Resources>
+
+	<!--
+		AllowDrop must be set on hit-tested children (ScrollViewer / chips), not only the root.
+		WinUI rejects drops over children that do not opt in, even when a parent has AllowDrop.
+	-->
+	<Grid
+		x:Name="RootGrid"
+		MinHeight="28"
+		Padding="8,2,8,2"
+		AllowDrop="True"
+		AutomationProperties.Name="{helpers:ResourceString Name=ShowBookmarksBar}"
+		Background="Transparent"
+		BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+		BorderThickness="0,0,0,1"
+		DragOver="BookmarksBar_DragOver"
+		Drop="BookmarksBar_Drop"
+		RightTapped="RootGrid_RightTapped"
+		ToolTipService.ToolTip="{helpers:ResourceString Name=BookmarksBarDropHint}">
+
+		<!--  Bookmarks  -->
+		<ScrollViewer
+			AllowDrop="True"
+			Background="Transparent"
+			DragOver="BookmarksBar_DragOver"
+			Drop="BookmarksBar_Drop"
+			HorizontalScrollBarVisibility="Hidden"
+			HorizontalScrollMode="Auto"
+			VerticalScrollBarVisibility="Disabled"
+			VerticalScrollMode="Disabled">
+			<ItemsRepeater ItemsSource="{x:Bind ViewModel.Items, Mode=OneWay}">
+				<ItemsRepeater.Layout>
+					<StackLayout Orientation="Horizontal" Spacing="2" />
+				</ItemsRepeater.Layout>
+
+				<ItemsRepeater.ItemTemplate>
+					<DataTemplate x:DataType="dataitems:LocationItem">
+						<Button
+							Padding="8,4,8,4"
+							VerticalAlignment="Center"
+							AllowDrop="True"
+							AutomationProperties.Name="{x:Bind Text}"
+							Background="Transparent"
+							BorderThickness="0"
+							Tag="{x:Bind}"
+							Click="Bookmark_Click"
+							CornerRadius="{StaticResource ControlCornerRadius}"
+							DragOver="BookmarksBar_DragOver"
+							Drop="BookmarksBar_Drop"
+							PointerPressed="Bookmark_PointerPressed"
+							RightTapped="Bookmark_RightTapped"
+							ToolTipService.ToolTip="{x:Bind ToolTip}">
+							<StackPanel
+								VerticalAlignment="Center"
+								Orientation="Horizontal"
+								Spacing="6">
+								<Image
+									Width="16"
+									Height="16"
+									VerticalAlignment="Center"
+									Source="{x:Bind Icon, Mode=OneWay}"
+									Stretch="Uniform" />
+								<TextBlock
+									VerticalAlignment="Center"
+									FontSize="12"
+									MaxLines="1"
+									Text="{x:Bind Text}"
+									TextTrimming="CharacterEllipsis" />
+							</StackPanel>
+						</Button>
+					</DataTemplate>
+				</ItemsRepeater.ItemTemplate>
+			</ItemsRepeater>
+		</ScrollViewer>
+
+		<!--  Hint shown when nothing is pinned  -->
+		<TextBlock
+			x:Name="EmptyHint"
+			Margin="8,0,0,0"
+			VerticalAlignment="Center"
+			FontSize="12"
+			Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+			IsHitTestVisible="False"
+			Text="{helpers:ResourceString Name=BookmarksBarEmptyHint}"
+			Visibility="Collapsed" />
+	</Grid>
+</UserControl>

@@ -353,6 +353,7 @@ namespace Files.App.Helpers
 					.AddSingleton<ToolbarCustomizationViewModel>()
 					.AddTransient<HomeViewModel>()
 					.AddSingleton<QuickAccessWidgetViewModel>()
+					.AddSingleton<BookmarksBarViewModel>()
 					.AddSingleton<DrivesWidgetViewModel>()
 					.AddSingleton<NetworkLocationsWidgetViewModel>()
 					.AddSingleton<FileTagsWidgetViewModel>()
@@ -381,22 +382,29 @@ namespace Files.App.Helpers
 		/// </summary>
 		public static void SaveSessionTabs()
 		{
-			var userSettingsService = Ioc.Default.GetRequiredService<IUserSettingsService>();
-
-			userSettingsService.GeneralSettingsService.LastSessionTabList = MainPageViewModel.AppInstances.DefaultIfEmpty().Select(tab =>
+			try
 			{
-				if (tab is not null && tab.NavigationParameter is not null)
-				{
-					return tab.NavigationParameter.Serialize();
-				}
-				else
-				{
-					return "";
-				}
-			})
-			.ToList();
+				var userSettingsService = Ioc.Default.GetRequiredService<IUserSettingsService>();
 
-			userSettingsService.GeneralSettingsService.LastSessionSelectedTabIndex = App.AppModel.TabStripSelectedIndex;
+				userSettingsService.GeneralSettingsService.LastSessionTabList = MainPageViewModel.AppInstances.DefaultIfEmpty().Select(tab =>
+				{
+					if (tab is not null && tab.NavigationParameter is not null)
+					{
+						return tab.NavigationParameter.Serialize();
+					}
+					else
+					{
+						return "";
+					}
+				})
+				.ToList();
+
+				userSettingsService.GeneralSettingsService.LastSessionSelectedTabIndex = App.AppModel.TabStripSelectedIndex;
+			}
+			catch (Exception ex)
+			{
+				App.Logger?.LogWarning(ex, "SaveSessionTabs failed");
+			}
 		}
 
 		// XAML delivers Application.UnhandledException with the managed stack already stripped,

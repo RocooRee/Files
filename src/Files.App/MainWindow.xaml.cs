@@ -57,32 +57,26 @@ namespace Files.App
 			if (rootFrame is null)
 				return false;
 
-			// Submit the initial content and backdrop before the window's normal show animation.
-			await CompositionTarget.GetCompositorForCurrentThread().RequestCommitAsync();
-
-			var firstFrame = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-			CompositionTarget.Rendered += OnRendered;
-			Closed += OnClosed;
 			try
 			{
-				Activate();
-				// Let the initial content paint before starting the remaining initialization.
-				return await firstFrame.Task;
+				var breadcrumb = System.IO.Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "activate_breadcrumb.txt");
+				System.IO.File.AppendAllText(breadcrumb, DateTime.Now.ToString("o") + " enter" + Environment.NewLine);
 			}
-			finally
-			{
-				CompositionTarget.Rendered -= OnRendered;
-				Closed -= OnClosed;
-			}
+			catch { }
 
-			void OnRendered(object? sender, RenderedEventArgs args)
-			{
-				if (rootFrame.IsLoaded)
-					firstFrame.TrySetResult(true);
-			}
+			// Skip composition wait: Win10 + Sunlogin OrayIdd hangs RequestCommit/Rendered (white window).
+			Activate();
 
-			void OnClosed(object sender, WindowEventArgs args)
-				=> firstFrame.TrySetResult(false);
+			try
+			{
+				var breadcrumb = System.IO.Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "activate_breadcrumb.txt");
+				System.IO.File.AppendAllText(breadcrumb, DateTime.Now.ToString("o") + " after Activate IsLoaded=" + rootFrame.IsLoaded + " Content=" + (rootFrame.Content?.GetType().Name ?? "null") + Environment.NewLine);
+			}
+			catch { }
+
+			App.Logger?.LogWarning("ActivateWithBackdropAsync skipped composition wait. IsLoaded={IsLoaded}", rootFrame.IsLoaded);
+			await Task.Yield();
+			return true;
 		}
 
 		public void ShowSplashScreen()
@@ -287,6 +281,7 @@ namespace Files.App
 		{
 			try
 			{
+				try { System.IO.File.AppendAllText(System.IO.Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "activate_breadcrumb.txt"), DateTime.Now.ToString("o") + " EnsureWindow enter" + Environment.NewLine); } catch { }
 				// NOTE:
 				//  Do not repeat app initialization when the Window already has content,
 				//  just ensure that the window is active
@@ -312,10 +307,19 @@ namespace Files.App
 
 				if (SystemBackdrop is null)
 				{
-					// Initialize the active material directly instead of transitioning from its inactive fallback.
-					var backdrop = new AppSystemBackdrop();
-					backdrop.SetInputActive(true);
-					SystemBackdrop = backdrop;
+					// Mica/Acrylic content islands often stay blank on Windows 10 under
+					// virtual display drivers (Sunlogin OrayIdd / ToDesk). Use solid there.
+					if (Environment.OSVersion.Version.Build >= 22000 &&
+						Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported())
+					{
+						var backdrop = new AppSystemBackdrop();
+						backdrop.SetInputActive(true);
+						SystemBackdrop = backdrop;
+					}
+					else
+					{
+						SystemBackdrop = null;
+					}
 				}
 
 				return rootFrame;
