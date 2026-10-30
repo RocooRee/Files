@@ -10,8 +10,15 @@
 	mc:Ignorable="d">
 
 	<UserControl.Resources>
-		<!--  Context menu for a bookmark chip  -->
+		<!--  Context menu for a bookmark chip (Chrome-like)  -->
 		<MenuFlyout x:Key="BookmarkFlyout">
+			<MenuFlyoutItem
+				Click="OpenInCurrentTab_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarOpenInCurrentTab}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8A5;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
 			<MenuFlyoutItem
 				Click="OpenInNewTab_Click"
 				Text="{helpers:ResourceString Name=OpenInNewTab}">
@@ -24,6 +31,29 @@
 				Text="{helpers:ResourceString Name=OpenInNewWindow}">
 				<MenuFlyoutItem.Icon>
 					<FontIcon Glyph="&#xE8A7;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutSeparator />
+			<MenuFlyoutItem
+				x:Name="BookmarkFlyoutAddBookmarkItem"
+				Click="PinCurrentFolder_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarAddBookmark}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE718;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutItem
+				Click="AddFolder_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarAddFolder}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8B7;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutItem
+				Click="ManageBookmarks_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarManageBookmarks}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8FD;" />
 				</MenuFlyoutItem.Icon>
 			</MenuFlyoutItem>
 			<MenuFlyoutSeparator />
@@ -41,9 +71,23 @@
 			<MenuFlyoutItem
 				x:Name="PinCurrentFolderItem"
 				Click="PinCurrentFolder_Click"
-				Text="{helpers:ResourceString Name=PinFolderToSidebar}">
+				Text="{helpers:ResourceString Name=BookmarksBarAddBookmark}">
 				<MenuFlyoutItem.Icon>
 					<FontIcon Glyph="&#xE718;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutItem
+				Click="AddFolder_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarAddFolder}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8B7;" />
+				</MenuFlyoutItem.Icon>
+			</MenuFlyoutItem>
+			<MenuFlyoutItem
+				Click="ManageBookmarks_Click"
+				Text="{helpers:ResourceString Name=BookmarksBarManageBookmarks}">
+				<MenuFlyoutItem.Icon>
+					<FontIcon Glyph="&#xE8FD;" />
 				</MenuFlyoutItem.Icon>
 			</MenuFlyoutItem>
 		</MenuFlyout>
@@ -91,6 +135,7 @@
 							AutomationProperties.Name="{x:Bind Text}"
 							Background="Transparent"
 							BorderThickness="0"
+							Tag="{x:Bind}"
 							Click="Bookmark_Click"
 							CornerRadius="{StaticResource ControlCornerRadius}"
 							DragOver="BookmarksBar_DragOver"

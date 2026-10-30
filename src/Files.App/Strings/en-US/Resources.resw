@@ -4767,4 +4767,20 @@
   <data name="SearchForQuery" xml:space="preserve">
     <value>Search for `{0}`</value>
   </data>
+  <data name="BookmarksBarAddBookmark" xml:space="preserve">
+    <value>Add bookmark</value>
+    <comment>Context menu on bookmarks bar: pin current/selected folder</comment>
+  </data>
+  <data name="BookmarksBarAddFolder" xml:space="preserve">
+    <value>Add folder</value>
+    <comment>Context menu on bookmarks bar: create a folder category and pin it (flat pins; not Chrome nested bookmark folders)</comment>
+  </data>
+  <data name="BookmarksBarManageBookmarks" xml:space="preserve">
+    <value>Manage bookmarks</value>
+    <comment>Context menu on bookmarks bar: focus the sidebar pinned section</comment>
+  </data>
+  <data name="BookmarksBarOpenInCurrentTab" xml:space="preserve">
+    <value>Open</value>
+    <comment>Context menu: open bookmark in the current tab</comment>
+  </data>
 </root>

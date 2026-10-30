@@ -4740,4 +4740,25 @@
   <data name="ConfirmRemoveTagsDialogContent" xml:space="preserve">
     <value>您确定要从所选项目中删除标签吗？</value>
   </data>
+  <data name="BookmarksBarAddBookmark" xml:space="preserve">
+    <value>添加书签</value>
+  </data>
+  <data name="BookmarksBarAddFolder" xml:space="preserve">
+    <value>添加分类</value>
+  </data>
+  <data name="BookmarksBarManageBookmarks" xml:space="preserve">
+    <value>管理书签</value>
+  </data>
+  <data name="BookmarksBarOpenInCurrentTab" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="ShowBookmarksBar" xml:space="preserve">
+    <value>显示书签栏</value>
+  </data>
+  <data name="BookmarksBarEmptyHint" xml:space="preserve">
+    <value>拖放文件夹到此处以固定</value>
+  </data>
+  <data name="BookmarksBarDropHint" xml:space="preserve">
+    <value>拖放文件夹到此处，固定到书签栏和侧边栏</value>
+  </data>
 </root>

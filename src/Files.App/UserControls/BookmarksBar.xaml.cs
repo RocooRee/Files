@@ -1,6 +1,8 @@
-锘?/ Copyright (c) Files Community
+// Copyright (c) Files Community
 // Licensed under the MIT License.
 
+using Files.App.Controls;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -22,6 +24,11 @@ namespace Files.App.UserControls
 	{
 		private IContentPageContext ContentPageContext { get; } = Ioc.Default.GetRequiredService<IContentPageContext>();
 		private IQuickAccessService QuickAccessService { get; } = Ioc.Default.GetRequiredService<IQuickAccessService>();
+
+		/// <summary>
+		/// Bookmark chip that opened the shared context flyout (Target/DataContext can be unreliable).
+		/// </summary>
+		private LocationItem? _flyoutItem;
 
 		[DynamicWindowsRuntimeCast(typeof(MenuFlyout))]
 		private MenuFlyout? GetBookmarkFlyout() => Resources["BookmarkFlyout"] as MenuFlyout;
@@ -56,27 +63,61 @@ namespace Files.App.UserControls
 			EmptyHint.Visibility = ViewModel.Items.Count is 0 ? Visibility.Visible : Visibility.Collapsed;
 		}
 
+		
+		[DynamicWindowsRuntimeCast(typeof(FrameworkElement))]
+		[DynamicWindowsRuntimeCast(typeof(DependencyObject))]
+		private static LocationItem? FindLocationItemFromVisual(DependencyObject? start)
+		{
+			for (var current = start; current is not null; current = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(current))
+			{
+				if (current is FrameworkElement fe)
+				{
+					if (fe.Tag is LocationItem tagged)
+						return tagged;
+					if (fe.DataContext is LocationItem fromContext)
+						return fromContext;
+				}
+			}
+
+			return null;
+		}
+
 		[DynamicWindowsRuntimeCast(typeof(FrameworkElement))]
 		private static LocationItem? GetItem(object? sender)
-			=> (sender as FrameworkElement)?.DataContext as LocationItem;
+		{
+			if (sender is not FrameworkElement element)
+				return null;
 
+			// x:Bind DataTemplates often leave DataContext null; Tag is bound to the LocationItem.
+			if (element.Tag is LocationItem tagged)
+				return tagged;
+
+			if (element.DataContext is LocationItem fromContext)
+				return fromContext;
+
+			return null;
+		}
+
+		private LocationItem? GetFlyoutItem()
+			=> _flyoutItem ?? GetItem(GetBookmarkFlyout()?.Target);
+
+		/// <summary>
+		/// Left-click opens the bookmark in a new tab (file-manager friendly; Chrome opens in-place).
+		/// Shift+click opens in a new window. Middle-click also opens a new tab.
+		/// </summary>
 		private async void Bookmark_Click(object sender, RoutedEventArgs e)
 		{
 			if (GetItem(sender) is not { Path: { } path })
 				return;
 
-			if (InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control).HasFlag(CoreVirtualKeyStates.Down))
+			if (InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift).HasFlag(CoreVirtualKeyStates.Down))
 			{
-				await NavigationHelpers.OpenPathInNewTab(path);
+				await NavigationHelpers.OpenPathInNewWindowAsync(path);
 				return;
 			}
 
-			if (ContentPageContext.ShellPage is not { } shellPage)
-				return;
-
-			shellPage.NavigateWithArguments(
-				shellPage.InstanceViewModel.FolderSettings.GetLayoutType(path),
-				new NavigationArguments() { NavPathParam = path });
+			// Always switch so the click feels like navigation (primary action).
+			await NavigationHelpers.OpenPathInNewTab(path, true);
 		}
 
 		private async void Bookmark_PointerPressed(object sender, PointerRoutedEventArgs e)
@@ -85,35 +126,102 @@ namespace Files.App.UserControls
 				return;
 
 			if (GetItem(sender) is { Path: { } path })
-				await NavigationHelpers.OpenPathInNewTab(path);
+				await NavigationHelpers.OpenPathInNewTab(path, true);
 		}
 
 		[DynamicWindowsRuntimeCast(typeof(FrameworkElement))]
 		private void Bookmark_RightTapped(object sender, RightTappedRoutedEventArgs e)
 		{
-			if (sender is not FrameworkElement element || GetItem(sender) is null || GetBookmarkFlyout() is not { } flyout)
+			if (sender is not FrameworkElement element || GetItem(sender) is not { } item || GetBookmarkFlyout() is not { } flyout)
 				return;
+
+			_flyoutItem = item;
+
+			if (BookmarkFlyoutAddBookmarkItem is not null)
+				BookmarkFlyoutAddBookmarkItem.IsEnabled = CanPinCurrentOrSelectedFolders();
 
 			flyout.ShowAt(element, new FlyoutShowOptions() { Position = e.GetPosition(element) });
 			e.Handled = true;
 		}
 
+		private async void OpenInCurrentTab_Click(object sender, RoutedEventArgs e)
+		{
+			if (GetFlyoutItem() is not { Path: { } path } || ContentPageContext.ShellPage is not { } shellPage)
+				return;
+
+			shellPage.NavigateWithArguments(
+				shellPage.InstanceViewModel.FolderSettings.GetLayoutType(path),
+				new NavigationArguments() { NavPathParam = path });
+		}
+
 		private async void OpenInNewTab_Click(object sender, RoutedEventArgs e)
 		{
-			if (GetItem(GetBookmarkFlyout()?.Target) is { Path: { } path })
-				await NavigationHelpers.OpenPathInNewTab(path);
+			if (GetFlyoutItem() is { Path: { } path })
+				await NavigationHelpers.OpenPathInNewTab(path, true);
 		}
 
 		private async void OpenInNewWindow_Click(object sender, RoutedEventArgs e)
 		{
-			if (GetItem(GetBookmarkFlyout()?.Target) is { Path: { } path })
+			if (GetFlyoutItem() is { Path: { } path })
 				await NavigationHelpers.OpenPathInNewWindowAsync(path);
 		}
 
 		private async void Unpin_Click(object sender, RoutedEventArgs e)
 		{
-			if (GetItem(GetBookmarkFlyout()?.Target) is { Path: { } path })
+			if (GetFlyoutItem() is { Path: { } path })
 				await QuickAccessService.UnpinFromSidebarAsync(path);
+		}
+
+		/// <summary>
+		/// Opens the sidebar expanded with the pinned section visible — closest Files-native "manage bookmarks".
+		/// </summary>
+		private void ManageBookmarks_Click(object sender, RoutedEventArgs e)
+		{
+			var sidebar = Ioc.Default.GetRequiredService<SidebarViewModel>();
+			sidebar.ShowPinnedFoldersSection = true;
+			sidebar.SidebarDisplayMode = SidebarDisplayMode.Expanded;
+
+			var mainPage = Ioc.Default.GetService<MainPageViewModel>();
+			if (mainPage is not null)
+				mainPage.IsSidebarPaneOpen = true;
+		}
+
+		/// <summary>
+		/// Creates a folder under Documents\Files Bookmarks and pins it.
+		/// Windows Quick Access pins are flat — this is the closest stand-in for Chrome bookmark folders.
+		/// </summary>
+		private async void AddFolder_Click(object sender, RoutedEventArgs e)
+		{
+			var dialog = DynamicDialogFactory.GetFor_CreateItemDialog("Folder", null);
+			var result = await DialogDisplayHelper.ShowDialogAsync(dialog);
+			if (result is not DynamicDialogResult.Primary)
+				return;
+
+			if (dialog.ViewModel.AdditionalData is not string name || string.IsNullOrWhiteSpace(name))
+				return;
+
+			name = FilesystemHelpers.FilterRestrictedCharacters(name.Trim());
+			if (string.IsNullOrWhiteSpace(name) || !FilesystemHelpers.IsValidForFilename(name))
+				return;
+
+			var root = SystemIO.Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+				"Files Bookmarks");
+
+			try
+			{
+				SystemIO.Directory.CreateDirectory(root);
+				var path = SystemIO.Path.Combine(root, name);
+				SystemIO.Directory.CreateDirectory(path);
+				await QuickAccessService.PinToSidebarAsync([path]);
+			}
+			catch (Exception ex)
+			{
+				App.Logger?.LogWarning(ex, "Failed to create bookmarks-bar folder category");
+				await DialogDisplayHelper.ShowDialogAsync(
+					Strings.ErrorDialogUnsupportedOperation.GetLocalizedResource(),
+					ex.Message);
+			}
 		}
 
 		/// <summary>
@@ -168,18 +276,21 @@ namespace Files.App.UserControls
 		}
 
 		/// <summary>
-		/// Empty-area context menu: pin the current folder / selection.
+		/// Empty-area context menu: pin the current folder / selection, add folder, manage.
 		/// </summary>
 		[DynamicWindowsRuntimeCast(typeof(FrameworkElement))]
+		[DynamicWindowsRuntimeCast(typeof(DependencyObject))]
 		private void RootGrid_RightTapped(object sender, RightTappedRoutedEventArgs e)
 		{
 			// Bookmark chips handle their own menu and mark Handled.
 			if (e.Handled || GetEmptyBarFlyout() is not { } flyout)
 				return;
 
-			// Ignore right-clicks that landed on a bookmark chip (DataContext is LocationItem).
-			if (e.OriginalSource is FrameworkElement { DataContext: LocationItem })
+			// Ignore right-clicks that landed on a bookmark chip (Tag/DataContext is LocationItem).
+			if (FindLocationItemFromVisual((e.OriginalSource as DependencyObject)) is not null)
 				return;
+
+			_flyoutItem = null;
 
 			if (PinCurrentFolderItem is not null)
 				PinCurrentFolderItem.IsEnabled = CanPinCurrentOrSelectedFolders();
